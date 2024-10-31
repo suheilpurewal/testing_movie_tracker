@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Check In</h3>
+
+                    <form action="/checkin" method="POST" class="mt-4">
+                        <div id="existingUserDiv" class="form-group">
+                            <label for="name">Select Your Name:</label>
+                            <select name="name" id="name" class="form-control" required>
+                                <option value="" disabled selected>Choose your name</option>
+                                {% for user in users %}
+                                <option value="{{ user.name }}">{{ user.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-center">
+                            <button type="submit" class="btn btn-primary btn-lg mt-3" id="checkInButton" disabled>Check In</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('name').addEventListener('change', function() {
+    document.getElementById('checkInButton').disabled = !this.value;
+});
+</script>
+{% endblock %}

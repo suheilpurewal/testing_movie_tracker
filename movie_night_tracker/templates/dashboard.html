@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2 class="mb-4">Movie Night Dashboard</h2>
+
+<!-- Request a Movie -->
+<a href="{{ url_for('request_movie') }}" class="btn btn-secondary mb-4">Request a Movie</a>
+
+
+{% if user_name == "Suhail" %}
+<h3 class="mt-4">Admin Page</h3>
+<a href="{{ url_for('admin', user_name=user_name) }}" class="btn btn-outline-info mb-4">Admin Page</a>
+{% endif %}
+
+<!-- List of Movie Requests with Voting Option -->
+<h3 class="mt-4">Movie Requests</h3>
+<ul class="list-group mb-4">
+    {% for request in movie_requests %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+            <span>{{ request.movie_title }} ({{ request.votes }} votes) - Requested by {{ request.requested_by }} on {{ request.request_date.strftime('%Y-%m-%d') }}</span>
+        </div>
+        <div class="d-flex">
+            <form action="{{ url_for('vote_movie', request_id=request.id) }}" method="POST">
+                <input type="hidden" name="user_name" value="{{ user_name }}">
+                <button type="submit" class="btn btn-outline-success btn-sm mr-2">Vote</button>
+            </form>
+            {% if user_name == "Suhail" %}
+            <form action="{{ url_for('delete_request', request_id=request.id) }}" method="POST">
+                <input type="hidden" name="user_name" value="{{ user_name }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+            </form>
+            {% endif %}
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+
+<!-- View Options -->
+<p class="lead">Welcome, {{ user_name }}! You can choose to view:</p>
+<div class="btn-group mb-4" role="group" aria-label="View options">
+    <a href="{{ url_for('dashboard', user_name=user_name, view='all') }}" class="btn btn-primary">All Movies Watched</a>
+    <a href="{{ url_for('dashboard', user_name=user_name, view='personal') }}" class="btn btn-secondary">Movies You've Watched</a>
+</div>
+
+{% if view == 'all' %}
+<!-- List of All Movies and Average Ratings -->
+<h3 class="mt-4">All Movies Watched</h3>
+<ul class="list-group">
+    {% for item in movies %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>{{ item.title }}: 
+            <strong>
+                {% if item.average_rating %}
+                {{ item.average_rating }}/10
+                {% else %}
+                Not Rated/10
+                {% endif %}
+            </strong>
+        </span>
+        <div>
+            <a href="{{ url_for('movie_detail', movie_name=item.title, user_name=user_name) }}" class="btn btn-outline-info btn-sm">View Ratings</a>
+            {% if user_name == "Suhail" %}
+            <a href="{{ url_for('edit_attendance', movie_id=item.id) }}" class="btn btn-outline-warning btn-sm">Edit Attendance</a>
+            {% endif %}
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% if view == 'personal' %}
+<!-- List of Movies You Have Reviewed -->
+<h3 class="mt-4">Movies You've Reviewed</h3>
+<ul class="list-group">
+    {% for movie in movies %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>{{ movie.title }} (Watched on {{ movie.watch_date.strftime('%Y-%m-%d') }}): <strong>{{ movie.rating }}/10</strong></span>
+        <a href="{{ url_for('movie_detail', movie_name=movie.title, user_name=user_name) }}" class="btn btn-outline-info btn-sm">View Ratings</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if user_name == "Suhail" %}
+<!-- Suhail Only: Add a Movie for Review (No Rating Input) -->
+<h3 class="mt-4">Add a Movie for Review</h3>
+<form action="/add_movie" method="POST" class="mb-4">
+    <div class="form-group">
+        <label for="movie">Movie Name:</label>
+        <input type="text" id="movie" name="movie" class="form-control" required>
+    </div>
+    <input type="hidden" name="user_name" value="{{ user_name }}">
+    <button type="submit" class="btn btn-success">Add Movie</button>
+</form>
+{% endif %}
+
+<!-- List of Movies that Need to be Rated -->
+{% if unrated_movies %}
+<h3 class="mt-4">Movies to Rate</h3>
+<!--<div class="progress mb-4">
+    <div class="progress-bar" role="progressbar" style="width: {{ rated_percentage }}%;" aria-valuenow="{{ rated_percentage }}" aria-valuemin="0" aria-valuemax="100">{{ rated_percentage }}%</div>
+</div>--->
+<ul class="list-group mb-4">
+    {% for movie in unrated_movies %}
+    <li class="list-group-item">
+        <form action="{{ url_for('rate_movie') }}" method="POST" class="d-flex justify-content-between align-items-center">
+            <div>
+                <span>{{ movie.title }} (Watched on {{ movie.watch_date.strftime('%Y-%m-%d') }})</span>
+            </div>
+            <div>
+                <input type="range" id="rating_{{ movie.id }}" name="rating" class="form-control-range" min="1" max="10" step="0.1" value="5" oninput="this.nextElementSibling.value = this.value" data-toggle="tooltip" title="Slide to rate the movie between 1 and 10">
+                <output>5</output>/10
+            </div>
+            <input type="hidden" name="movie" value="{{ movie.title }}">
+            <input type="hidden" name="user_name" value="{{ user_name }}">
+            <button type="submit" class="btn btn-primary">Submit Rating</button>
+        </form>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% endblock %}
