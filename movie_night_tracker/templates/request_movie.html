@@ -15,10 +15,10 @@
                     {% endif %}
 
                     <form action="/request_movie" method="POST">
-                        <div class="form-group position-relative">
+                        <div class="form-group">
                             <label for="movie_title">Movie Title:</label>
                             <input type="text" id="movie_title" name="movie_title" class="form-control" required autocomplete="off">
-                            <div id="suggestion-list" class="suggestion-list"></div>
+                            <ul id="suggestions" class="list-group mt-2" style="display: none;"></ul>  <!-- Autocomplete suggestions -->
                         </div>
 
                         <div class="form-group">
@@ -41,68 +41,54 @@
     </div>
 </div>
 
-<!-- JavaScript for autocomplete -->
 <script>
-    const apiKey = '0be927d50945d1293a82faa8e65bbdf8'; // Replace with your actual TMDb API key
+const API_KEY = '0be927d50945d1293a82faa8e65bbdf8';
+const input = document.getElementById('movie_title');
+const suggestions = document.getElementById('suggestions');
 
-    document.getElementById('movie_title').addEventListener('input', function () {
-        const query = this.value;
-        if (query.length > 2) {  // Trigger search if query is longer than 2 characters
-            fetch(`https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(data => {
-                    const suggestions = data.results.map(movie => ({
-                        title: movie.title,
-                        year: movie.release_date ? movie.release_date.split('-')[0] : 'N/A'
-                    }));
-                    displaySuggestions(suggestions);
-                })
-                .catch(error => console.error('Error fetching movie suggestions:', error));
-        } else {
-            document.getElementById('suggestion-list').innerHTML = '';
+input.addEventListener('input', async function() {
+    const query = input.value.trim();
+    if (query.length < 3) {
+        suggestions.style.display = 'none';
+        return;
+    }
+
+    const url = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`;
+    const options = {
+        method: 'GET',
+        headers: {
+            accept: 'application/json',
+            Authorization: `Bearer ${API_KEY}`
         }
-    });
+    };
 
-    function displaySuggestions(suggestions) {
-        const suggestionList = document.getElementById('suggestion-list');
-        suggestionList.innerHTML = '';
-        suggestions.forEach(suggestion => {
-            const listItem = document.createElement('div');
-            listItem.classList.add('suggestion-item');
-            listItem.textContent = `${suggestion.title} (${suggestion.year})`;
-            listItem.addEventListener('click', function () {
-                document.getElementById('movie_title').value = suggestion.title;
-                suggestionList.innerHTML = '';
-            });
-            suggestionList.appendChild(listItem);
+    try {
+        const response = await fetch(url, options);
+        const data = await response.json();
+        showSuggestions(data.results);
+    } catch (error) {
+        console.error('Error fetching movie suggestions:', error);
+    }
+});
+
+function showSuggestions(movies) {
+    suggestions.innerHTML = '';
+    if (!movies.length) {
+        suggestions.style.display = 'none';
+        return;
+    }
+
+    movies.slice(0, 5).forEach(movie => {
+        const li = document.createElement('li');
+        li.classList.add('list-group-item');
+        li.textContent = `${movie.title} (${movie.release_date ? movie.release_date.split('-')[0] : 'N/A'})`;
+        li.addEventListener('click', () => {
+            input.value = movie.title;
+            suggestions.style.display = 'none';
         });
-    }
+        suggestions.appendChild(li);
+    });
+    suggestions.style.display = 'block';
+}
 </script>
-
-<!-- CSS for styling the suggestion box -->
-<style>
-    .position-relative {
-        position: relative;
-    }
-    .suggestion-list {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        z-index: 1000;
-        max-height: 200px;
-        overflow-y: auto;
-        background-color: #ffffff;
-        border: 1px solid #ddd;
-        border-top: none;
-    }
-    .suggestion-item {
-        padding: 10px;
-        cursor: pointer;
-        border-bottom: 1px solid #ddd;
-    }
-    .suggestion-item:hover {
-        background-color: #f0f0f0;
-    }
-</style>
 {% endblock %}
