@@ -15,10 +15,10 @@
                     {% endif %}
 
                     <form action="/request_movie" method="POST">
-                        <div class="form-group">
+                        <div class="form-group position-relative">
                             <label for="movie_title">Movie Title:</label>
-                            <input type="text" id="movie_title" name="movie_title" class="form-control" required onkeyup="fetchMovieSuggestions()">
-                            <div id="suggestions" class="suggestions-dropdown"></div>
+                            <input type="text" id="movie_title" name="movie_title" class="form-control" required autocomplete="off">
+                            <div id="suggestion-list" class="suggestion-list"></div>
                         </div>
 
                         <div class="form-group">
@@ -41,64 +41,68 @@
     </div>
 </div>
 
+<!-- JavaScript for autocomplete -->
 <script>
-// JavaScript for fetching movie suggestions
-const apiKey = '0be927d50945d1293a82faa8e65bbdf8';
+    const apiKey = '0be927d50945d1293a82faa8e65bbdf8'; // Replace with your actual TMDb API key
 
-async function fetchMovieSuggestions() {
-    const query = document.getElementById("movie_title").value;
-
-    if (query.length < 3) {
-        document.getElementById("suggestions").innerHTML = "";
-        return;
-    }
-
-    const response = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${query}`);
-    const data = await response.json();
-    
-    displaySuggestions(data.results);
-}
-
-function displaySuggestions(movies) {
-    const suggestionsContainer = document.getElementById("suggestions");
-    suggestionsContainer.innerHTML = "";  // Clear previous suggestions
-
-    movies.slice(0, 5).forEach(movie => {
-        const suggestion = document.createElement("div");
-        suggestion.classList.add("suggestion-item");
-        suggestion.innerHTML = `${movie.title} [${movie.release_date ? movie.release_date.slice(0, 4) : "N/A"}]`;
-        
-        suggestion.onclick = () => {
-            document.getElementById("movie_title").value = movie.title;
-            suggestionsContainer.innerHTML = "";  // Clear suggestions after selection
-        };
-        
-        suggestionsContainer.appendChild(suggestion);
+    document.getElementById('movie_title').addEventListener('input', function () {
+        const query = this.value;
+        if (query.length > 2) {  // Trigger search if query is longer than 2 characters
+            fetch(`https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const suggestions = data.results.map(movie => ({
+                        title: movie.title,
+                        year: movie.release_date ? movie.release_date.split('-')[0] : 'N/A'
+                    }));
+                    displaySuggestions(suggestions);
+                })
+                .catch(error => console.error('Error fetching movie suggestions:', error));
+        } else {
+            document.getElementById('suggestion-list').innerHTML = '';
+        }
     });
-}
+
+    function displaySuggestions(suggestions) {
+        const suggestionList = document.getElementById('suggestion-list');
+        suggestionList.innerHTML = '';
+        suggestions.forEach(suggestion => {
+            const listItem = document.createElement('div');
+            listItem.classList.add('suggestion-item');
+            listItem.textContent = `${suggestion.title} (${suggestion.year})`;
+            listItem.addEventListener('click', function () {
+                document.getElementById('movie_title').value = suggestion.title;
+                suggestionList.innerHTML = '';
+            });
+            suggestionList.appendChild(listItem);
+        });
+    }
 </script>
 
+<!-- CSS for styling the suggestion box -->
 <style>
-/* Styling for the suggestions dropdown */
-.suggestions-dropdown {
-    position: absolute;
-    background-color: #333;
-    border: 1px solid #666;
-    width: 100%;
-    max-height: 150px;
-    overflow-y: auto;
-    z-index: 1000;
-}
-
-.suggestion-item {
-    padding: 8px;
-    color: #fff;
-    cursor: pointer;
-}
-
-.suggestion-item:hover {
-    background-color: #555;
-}
+    .position-relative {
+        position: relative;
+    }
+    .suggestion-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        max-height: 200px;
+        overflow-y: auto;
+        background-color: #ffffff;
+        border: 1px solid #ddd;
+        border-top: none;
+    }
+    .suggestion-item {
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #ddd;
+    }
+    .suggestion-item:hover {
+        background-color: #f0f0f0;
+    }
 </style>
-
 {% endblock %}
