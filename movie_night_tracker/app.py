@@ -6,7 +6,7 @@ from datetime import datetime
 app = Flask(__name__)
 
 # Configure the SQLite database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////data/users.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////data/users_test.db'
 db = SQLAlchemy(app)
 
 # Define a User model
