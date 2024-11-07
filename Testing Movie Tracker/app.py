@@ -15,7 +15,7 @@ tmdb_api_key = '0be927d50945d1293a82faa8e65bbdf8'
 ##use below when local
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 ##Use below for HA Addon
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////data/users.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////data/test_users.db'
 db = SQLAlchemy(app)
 
 # Define a User model
