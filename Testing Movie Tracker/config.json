@@ -8,8 +8,8 @@
   "options": {},
   "schema": {},
   "ports": {
-    "5002/tcp": 5002
+    "5001/tcp": 5001
   },
-  "webui": "http://[HOST]:[PORT:5002]",
+  "webui": "http://[HOST]:[PORT:5001]",
   "arch": ["aarch64", "amd64", "armv7", "armhf", "i386"]
 }
