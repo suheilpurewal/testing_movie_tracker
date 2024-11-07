@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="content-wrapper">
+    <h2>{{ tv_show.title }}</h2>
+    <img src="https://image.tmdb.org/t/p/w300{{ tv_show.poster_path }}" alt="{{ tv_show.title }}" class="img-fluid mb-2">
+    <p><strong>Average Rating:</strong> {{ tv_show.average_rating or 'N/A' }}</p>
+    
+    <h4>Episodes by Season:</h4>
+    
+    {% if episodes_by_season %}
+        {% for season_number, episodes in episodes_by_season.items() %}
+            <h5>Season {{ season_number }}</h5>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Episode</th>
+                        <th>Title</th>
+                        <th>Runtime</th>
+                        <th>Watch Date</th>
+                        <th>Average Rating</th>
+                        <th>Your Rating</th>
+                        {% if is_admin %}
+                            <th>Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for episode in episodes %}
+                    <tr>
+                        <td>{{ episode.episode_number }}</td>
+                        <td>
+                            <!-- Updated link to trigger modal for episode details -->
+                            <a href="#" onclick="showEpisodeDetails({{ episode.id }})">{{ episode.title }}</a>
+                        </td>
+                        <td>{{ episode.runtime or 'N/A' }} mins</td>
+                        <td>{{ episode.watch_date.strftime('%Y-%m-%d') if episode.watch_date else 'N/A' }}</td>
+                        <td>{{ episode.average_rating or 'N/A' }}</td>
+                        <td>{{ episode.user_rating or 'N/A' }}</td>
+                        {% if is_admin %}
+                        <td>
+                            <form action="{{ url_for('mark_as_watched', episode_id=episode.id) }}" method="post" style="display:inline;">
+                                <input type="hidden" name="episode_id" value="{{ episode.id }}">
+                                <button type="submit" class="btn btn-sm btn-info">
+                                    {{ 'Mark as Unwatched' if episode.watch_date else 'Mark as Watched' }}
+                                </button>
+                            </form>
+                            <button class="btn btn-sm btn-warning" onclick="window.location.href='{{ url_for('admin_edit_episode_attendance', episode_id=episode.id) }}'">Edit Attendance</button>
+                            <button class="btn btn-sm btn-primary" onclick="openRatingModal({{ episode.id }})">Rate Episode</button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    {% else %}
+        <p>No episodes fetched. Fetch episodes for this show:</p>
+        <div class="form-group">
+            <label>Select Seasons:</label><br>
+            <input type="checkbox" id="select-all" onclick="toggleAllSeasons()"> All Seasons<br>
+            {% for season in range(1, tv_show.total_seasons + 1) %}
+                <input type="checkbox" name="seasons" value="{{ season }}" class="season-checkbox"> Season {{ season }}<br>
+            {% endfor %}
+        </div>
+        <button type="button" class="btn btn-primary mt-2" onclick="fetchSelectedSeasons({{ tv_show.id }})">Fetch Selected Seasons</button>
+    {% endif %}
+    <!-- Episode Details Modal -->
+    <div id="episodeDetailsModal" class="modal" style="display: none;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Episode Details</h5>
+                    <button type="button" class="close" onclick="closeEpisodeModal()">&times;</button>
+                </div>
+                <div class="modal-body" id="episodeDetailsContent">
+                    <!-- Content injected here for episode details -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeEpisodeModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+
+    function showEpisodeDetails(episodeId) {
+            fetch(`/episode_details/${episodeId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const content = `
+                        <h5>${data.title} - Season ${data.season_number}, Episode ${data.episode_number}</h5>
+                        <p><strong>Air Date:</strong> ${data.air_date || "N/A"}</p>
+                        <p><strong>Runtime:</strong> ${data.runtime} minutes</p>
+                        <p><strong>Average Rating:</strong> ${data.average_rating || "N/A"}</p>
+                        <p><strong>User Ratings:</strong></p>
+                        <ul>
+                            ${data.user_ratings.map(rating => `<li>${rating.user_name}: ${rating.rating}/10</li>`).join('')}
+                        </ul>
+                    `;
+                    document.getElementById("episodeDetailsContent").innerHTML = content;
+                    document.getElementById("episodeDetailsModal").style.display = "block";
+                })
+                .catch(error => {
+                    console.error("Error fetching episode details:", error);
+                    alert("Failed to load episode details. Please try again.");
+                });
+        }
+
+    function closeEpisodeModal() {
+        document.getElementById("episodeDetailsModal").style.display = "none";
+    }
+        function openRatingModal(episodeId) {
+        // Open a modal or redirect to a page where the rating can be set
+        window.location.href = `/episode_details/${episodeId}`; // Or open a modal for rating
+    }
+
+    function openAttendanceModal(episodeId) {
+        // Open a modal or redirect to a page where attendance can be managed
+        window.location.href = `/episode_details/${episodeId}`; // Or open a modal for attendance
+    }
+    function toggleAllSeasons() {
+        const allChecked = document.getElementById('select-all').checked;
+        const checkboxes = document.querySelectorAll('.season-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = allChecked;
+        });
+        console.log("All seasons checkbox set to:", allChecked);  // Debug output
+    }
+    
+    function fetchSelectedSeasons(showId) {
+        // Get all checked checkboxes for seasons
+        const selectedSeasons = Array.from(document.querySelectorAll('input[name="seasons"]:checked')).map(checkbox => checkbox.value);
+        
+        // Debug: log selected seasons
+        console.log("Selected seasons:", selectedSeasons);
+
+        if (selectedSeasons.length === 0) {
+            alert("Please select at least one season.");
+            return;
+        }
+
+        // Construct the query string for the selected seasons
+        const queryString = selectedSeasons.map(season => `seasons=${season}`).join('&');
+
+        // Call the fetch_episodes endpoint with selected seasons as query parameters
+        const url = `/fetch_episodes/${showId}?${queryString}`;
+        console.log(`Fetching episodes with URL: ${url}`);  // Debug log to verify URL
+        
+        // Redirect to the fetch_episodes URL
+        window.location.href = url;
+    }
+
+    // Automatically select "All Seasons" if there's only one season available
+    window.onload = function() {
+        const seasonCheckboxes = document.querySelectorAll('.season-checkbox');
+        if (seasonCheckboxes.length === 1) {
+            seasonCheckboxes[0].checked = true;
+            document.getElementById('select-all').checked = true;
+        }
+    };
+</script>
+{% endblock %}

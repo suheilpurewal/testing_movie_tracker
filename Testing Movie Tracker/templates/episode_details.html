@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Episode Details Section -->
+    <h2>{{ episode.title }}</h2>
+    <img src="https://image.tmdb.org/t/p/w300{{ episode.tv_show.poster_path }}" alt="{{ episode.title }}" class="img-fluid mb-2">
+    <p><strong>Season:</strong> {{ episode.season_number }}</p>
+    <p><strong>Episode:</strong> {{ episode.episode_number }}</p>
+    <p><strong>Runtime:</strong> {{ episode.runtime or 'N/A' }} mins</p>
+    <p><strong>Air Date:</strong> {{ episode.air_date.strftime('%Y-%m-%d') if episode.air_date else 'N/A' }}</p>
+
+    <!-- Rating Section for Users -->
+    <h4>Your Rating</h4>
+    <form action="{{ url_for('rate_episode', episode_id=episode.id) }}" method="POST">
+        <input type="hidden" name="episode_id" value="{{ episode.id }}">
+        <input type="hidden" name="user_name" value="{{ user_name }}">
+        <label for="ratingSlider">Rate this Episode:</label>
+        <input type="range" name="rating" min="1" max="10" step="0.1" id="ratingSlider" 
+               oninput="updateSliderValue(this.value, 'sliderValue')">
+        <span id="sliderValue">5.0</span> / 10
+        <button type="submit" class="btn btn-primary mt-2">Submit Rating</button>
+    </form>
+
+    <!-- Attendance Management (Admin Only) -->
+    {% if is_admin %}
+    <h4>Manage Attendance</h4>
+    <form action="{{ url_for('update_episode_attendance') }}" method="POST">
+        <input type="hidden" name="episode_id" value="{{ episode.id }}">
+        <div class="form-group">
+            <label>Select Attendees:</label><br>
+            {% for user in all_users %}
+                <input type="checkbox" name="attendees" value="{{ user.id }}" 
+                       {% if user in episode.attendees %}checked{% endif %}>
+                {{ user.name }}<br>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-secondary">Update Attendance</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

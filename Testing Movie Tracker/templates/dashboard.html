@@ -1,0 +1,414 @@
+{% extends 'base.html' %} {% block content %}
+<div class="content-wrapper">
+  <h2>Welcome, {{ user.name }}!</h2>
+</div>
+  <!-- Movies to Rate -->
+  {% if unrated_movies %}
+  <div class="row grid-margin">
+    <div class="col-md-6 stretch-card">
+      <div class="card card-inverse-primary card-rounded">
+        <div class="card-body">
+          <h4 class="card-title text-primary">Items to Rate</h4>
+          <ul class="list-group list-group-flush">
+            {% for movie in unrated_movies %}
+            <li
+              class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+            >
+              <span class="font-weight-bold text-dark">{{ movie.title }}</span>
+              <div>
+                <form
+                  action="{{ url_for('rate_movie', movie_name=movie.title, user_name=user.name) }}"
+                  method="POST"
+                  class="form-inline"
+                >
+                  <label for="ratingSlider-{{ movie.id }}" class="mr-2"
+                    >Rate:</label
+                  >
+                  <input
+                    type="range"
+                    name="rating"
+                    min="1"
+                    max="10"
+                    step="0.1"
+                    class="form-control-range mr-2"
+                    id="ratingSlider-{{ movie.id }}"
+                    oninput="updateSliderValue(this.value, 'sliderValue-{{ movie.id }}')"
+                  />
+                  <span id="sliderValue-{{ movie.id }}" class="text-primary"
+                    >5.0</span
+                  >
+                  / 10
+                  <button type="submit" class="btn btn-success btn-sm ml-2">
+                    Rate Now
+                  </button>
+                </form>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <!-- Episodes to Rate -->
+  {% if unrated_episodes %}
+  <div class="row grid-margin">
+    <div class="col-md-6 stretch-card">
+      <div class="card card-inverse-primary card-rounded">
+        <div class="card-body">
+          <h4 class="card-title text-primary">Episodes to Rate</h4>
+          <ul class="list-group list-group-flush">
+            {% for episode in unrated_episodes %}
+            <li
+              class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+            >
+              <span class="font-weight-bold text-dark"
+                >{{ episode.tv_show.title }} - Season {{ episode.season_number
+                }}, Episode {{ episode.episode_number }}: {{ episode.title
+                }}</span
+              >
+              <div>
+                <form
+                  action="{{ url_for('rate_episode', episode_id=episode.id, user_name=user_name) }}"
+                  method="POST"
+                  class="form-inline"
+                >
+                  <label for="ratingSlider-{{ episode.id }}" class="mr-2"
+                    >Rate:</label
+                  >
+                  <input
+                    type="range"
+                    name="rating"
+                    min="1"
+                    max="10"
+                    step="0.1"
+                    class="form-control-range mr-2"
+                    id="ratingSlider-{{ episode.id }}"
+                    oninput="updateSliderValue(this.value, 'sliderValue-{{ episode.id }}')"
+                  />
+                  <span id="sliderValue-{{ episode.id }}" class="text-primary"
+                    >5.0</span
+                  >
+                  / 10
+                  <button type="submit" class="btn btn-success btn-sm ml-2">
+                    Rate Now
+                  </button>
+                </form>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <!-- Dashboard Stats -->
+  <div class="row">
+    <!-- Total Watch Time Card -->
+    <div class="col-md-3 stretch-card">
+      <div class="card card-statistics">
+        <div class="card-body">
+          <div
+            class="statistics-details d-flex align-items-center justify-content-between"
+          >
+            <div>
+              <h4 class="text-info">{{ user.name }}'s Total Watch Time</h4>
+              <p>Across all movies watched</p>
+            </div>
+            <div>
+              <h3 class="text-info">{{ total_watch_time | round(2) }} hrs</h3>
+              <i class="mdi mdi-timer text-info icon-md"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Total Movies Watched Card -->
+    <div class="col-md-3 stretch-card">
+      <div class="card card-statistics">
+        <div class="card-body">
+          <div
+            class="statistics-details d-flex align-items-center justify-content-between"
+          >
+            <div>
+              <h4 class="text-success">Total Movies Watched</h4>
+              <p>Across all users</p>
+            </div>
+            <div>
+              <h3 class="text-success">{{ total_movies_watched }}</h3>
+              <i class="mdi mdi-movie text-success icon-md"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Highest Rated Movie Card -->
+    <div class="col-md-3 stretch-card">
+      <div class="card card-statistics">
+        <div class="card-body">
+          <div
+            class="statistics-details d-flex align-items-center justify-content-between"
+          >
+            <div>
+              <h4 class="text-warning">Highest Rated Movie</h4>
+              <p>
+                {{ highest_rated_movie.title if highest_rated_movie else 'N/A'
+                }}
+              </p>
+            </div>
+            <div>
+              <h3 class="text-warning">
+                {{ highest_rating | round(1) if highest_rating else 'N/A' }}/10
+              </h3>
+              <i class="mdi mdi-star text-warning icon-md"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lowest Rated Movie Card -->
+    <div class="col-md-3 stretch-card">
+      <div class="card card-statistics">
+        <div class="card-body">
+          <div
+            class="statistics-details d-flex align-items-center justify-content-between"
+          >
+            <div>
+              <h4 class="text-danger">Lowest Rated Movie</h4>
+              <p>
+                {{ lowest_rated_movie.title if lowest_rated_movie else 'N/A' }}
+              </p>
+            </div>
+            <div>
+              <h3 class="text-danger">
+                {{ lowest_rating | round(1) if lowest_rating else 'N/A' }}/10
+              </h3>
+              <i class="mdi mdi-star-outline text-danger icon-md"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Additional Dashboard Stats (Total Watch Time, Highest/Lowest Rated Movies, etc.) -->
+  <div class="row mt-4">
+    <!-- Your Average Rating Card -->
+    <div class="col-md-3 stretch-card">
+      <div class="card card-statistics">
+        <div class="card-body">
+          <div
+            class="statistics-details d-flex align-items-center justify-content-between"
+          >
+            <div>
+              <h4 class="text-primary">Your Average Movie Rating</h4>
+              <p>Based on your ratings</p>
+            </div>
+            <div>
+              <h3 class="text-primary">
+                {% if average_user_rating is not none %} {{ average_user_rating
+                | round(1) }}/10 {% else %} N/A {% endif %}
+              </h3>
+              <i class="mdi mdi-star-half text-primary icon-md"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User with Highest Avg. Rating Card -->
+    <div class="col-md-3 stretch-card">
+      <div class="card card-statistics">
+        <div class="card-body">
+          <div
+            class="statistics-details d-flex align-items-center justify-content-between"
+          >
+            <div>
+              <h4 class="text-success">User with Highest Avg. Rating</h4>
+              <p>
+                {% if highest_avg_rating_user and highest_avg_rating is not none
+                %} {{ highest_avg_rating_user.name }} {% else %} N/A {% endif %}
+              </p>
+            </div>
+            <div>
+              <h3 class="text-success">
+                {{ highest_avg_rating | round(1) if highest_avg_rating else
+                'N/A' }}/10
+              </h3>
+              <i class="mdi mdi-account-star text-success icon-md"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User with Lowest Avg. Rating Card -->
+    <div class="col-md-3 stretch-card">
+      <div class="card card-statistics">
+        <div class="card-body">
+          <div
+            class="statistics-details d-flex align-items-center justify-content-between"
+          >
+            <div>
+              <h4 class="text-danger">User with Lowest Avg. Rating</h4>
+              <p>
+                {% if lowest_avg_rating_user and lowest_avg_rating is not none
+                %} {{ lowest_avg_rating_user.name }} {% else %} N/A {% endif %}
+              </p>
+            </div>
+            <div>
+              <h3 class="text-danger">
+                {{ lowest_avg_rating | round(1) if lowest_avg_rating else 'N/A'
+                }}/10
+              </h3>
+              <i class="mdi mdi-account-star-outline text-danger icon-md"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-4">
+    <!-- Total TV Shows Watched -->
+    <div class="col-md-3 stretch-card">
+      <div class="card card-statistics">
+        <div class="card-body">
+          <div
+            class="statistics-details d-flex align-items-center justify-content-between"
+          >
+            <div>
+              <h4 class="text-primary">Total TV Shows Watched</h4>
+              <p>Across all users</p>
+            </div>
+            <div>
+              <h3 class="text-primary">{{ total_tv_shows_watched }}</h3>
+              <i class="mdi mdi-television text-primary icon-md"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Highest Rated Episode -->
+    <div class="col-md-3 stretch-card">
+      <div class="card card-statistics">
+        <div class="card-body">
+          <div
+            class="statistics-details d-flex align-items-center justify-content-between"
+          >
+            <div>
+              <h4 class="text-warning">Highest Rated Episode</h4>
+              {% if highest_rated_episode %}
+              <p><strong>{{ highest_rated_episode.tv_show.title }}</strong></p>
+              <!-- Show Name -->
+              <p>{{ highest_rated_episode.title }}</p>
+              <!-- Episode Title -->
+              {% else %}
+              <p>N/A</p>
+              {% endif %}
+            </div>
+            <div>
+              <h3 class="text-warning">
+                {{ highest_episode_rating | round(1) if highest_episode_rating
+                else 'N/A' }}/10
+              </h3>
+              <i class="mdi mdi-star text-warning icon-md"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lowest Rated Episode -->
+    <div class="col-md-3 stretch-card">
+      <div class="card card-statistics">
+        <div class="card-body">
+          <div
+            class="statistics-details d-flex align-items-center justify-content-between"
+          >
+            <div>
+              <h4 class="text-danger">Lowest Rated Episode</h4>
+              {% if lowest_rated_episode %}
+              <p><strong>{{ lowest_rated_episode.tv_show.title }}</strong></p>
+              <!-- Show Name -->
+              <p>{{ lowest_rated_episode.title }}</p>
+              <!-- Episode Title -->
+              {% else %}
+              <p>N/A</p>
+              {% endif %}
+            </div>
+            <div>
+              <h3 class="text-danger">
+                {{ lowest_episode_rating | round(1) if lowest_episode_rating
+                else 'N/A' }}/10
+              </h3>
+              <i class="mdi mdi-star-outline text-danger icon-md"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Your Average TV Show Rating -->
+    <div class="col-md-3 stretch-card">
+      <div class="card card-statistics">
+        <div class="card-body">
+          <div
+            class="statistics-details d-flex align-items-center justify-content-between"
+          >
+            <div>
+              <h4 class="text-info">Your Average TV Show Rating</h4>
+              <p>Based on your ratings</p>
+            </div>
+            <div>
+              <h3 class="text-info">
+                {% if average_tv_show_rating is not none %} {{
+                average_tv_show_rating | round(1) }}/10 {% else %} N/A {% endif
+                %}
+              </h3>
+              <i class="mdi mdi-star-half text-info icon-md"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row mt-4">
+    <!-- TV Show with Most Episodes Watched -->
+    <div class="col-md-3 stretch-card">
+      <div class="card card-statistics">
+        <div class="card-body">
+          <div
+            class="statistics-details d-flex align-items-center justify-content-between"
+          >
+            <div>
+              <h4 class="text-primary">Most Episodes Watched</h4>
+              <p>
+                {% if tv_show_most_episodes_watched %} {{
+                tv_show_most_episodes_watched.title }} ({{
+                tv_show_most_episodes_watched.episode_count }} episodes) {% else
+                %} N/A {% endif %}
+              </p>
+            </div>
+            <div>
+              <i class="mdi mdi-television text-primary icon-md"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for updating slider value dynamically -->
+<script>
+  function updateSliderValue(value, elementId) {
+    document.getElementById(elementId).innerText = value;
+  }
+</script>
+{% endblock %}

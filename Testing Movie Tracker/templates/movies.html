@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="content-wrapper">
+    <h2>Welcome, {{ user.name }}!</h2>
+
+    <!-- Movie Requests with Voting and Admin Actions -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card card-inverse-warning card-rounded">
+                <div class="card-body">
+                    <h4 class="card-title">Movie Requests</h4>
+                        <ul class="list-group mt-3">
+                            {% for request in movie_requests %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <a href="#" onclick="showRequestDetails({{ request.id }})">
+                                    {{ request.movie_title }}
+                                </a> ({{ request.votes }} votes)
+                                <div>
+                                    <form action="{{ url_for('vote_movie', request_id=request.id) }}" method="POST" style="display:inline;">
+                                        <input type="hidden" name="user_name" value="{{ user.name }}">
+                                        <button type="submit" class="btn btn-success btn-sm">Vote</button>
+                                    </form>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        <a href="{{ url_for('request_movie', user_name=user.name) }}" class="btn btn-primary mt-3">Request a
+                            Movie</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Movies Watched -->
+        <div class="content-wrapper">
+            
+            <!-- Toggle Buttons -->
+            <div class="btn-group mb-4" role="group" aria-label="View options">
+                <button class="btn btn-primary" id="showAllMovies" onclick="showTable('all')">All Movies</button>
+                <button class="btn btn-secondary" id="showPersonalMovies" onclick="showTable('personal')">Movies You've Attended</button>
+            </div>
+        
+            <!-- Table Structure -->
+            <div class="table-responsive">
+                <table class="table table-dark table-striped">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable('allMoviesTable', 0)">Movie Name</th>
+                            <th onclick="sortTable('allMoviesTable', 1)">Date Watched</th>
+                            <th onclick="sortTable('allMoviesTable', 2)">Average Rating</th>
+                            <th onclick="sortTable('allMoviesTable', 3)">Your Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allMoviesTable" style="display: none;">
+                        {% for movie in all_movies %}
+                        <tr>
+                            <td><a href="#" onclick="showDetails('{{ movie.id }}')">{{ movie.title }}</a></td>
+                            <td>{{ movie.watch_date.strftime('%Y-%m-%d') if movie.watch_date else "N/A" }}</td>
+                            <td>{{ movie.average_rating }}/10</td>
+                            <td>
+                                {% if movie.user_rating is not none %}
+                                    {{ movie.user_rating }}/10
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tbody id="personalMoviesTable" style="display: none;">
+                        {% for movie in personal_movies %}
+                        <tr>
+                            <td><a href="#" onclick="showDetails('{{ movie.id }}')">{{ movie.title }}</a></td>
+                            <td>{{ movie.watch_date.strftime('%Y-%m-%d') if movie.watch_date else "N/A" }}</td>
+                            <td>{{ movie.average_rating }}/10</td>
+                            <td>{{ movie.user_rating }}/10</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    <!-- Modal for Watched Movies Details -->
+    <div id="watchedMovieModal" class="modal" style="display: none;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Watched Movie Details</h5>
+                    <button type="button" class="button-close" onclick="closeWatchedModal()">&times;</button>
+                </div>
+                <div class="modal-body" id="watchedMovieContent">
+                    <!-- Content injected here for watched movies -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeWatchedModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Movie Request Details -->
+    <div id="requestMovieModal" class="modal" style="display: none;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Requested Movie Details</h5>
+                    <button type="button" class="button-close" onclick="closeRequestModal()">&times;</button>
+                </div>
+                <div class="modal-body" id="requestMovieContent">
+                    <!-- Content injected here for requested movies -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeRequestModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- JavaScript to Handle Modal Fetch and Toggle -->
+    <script>
+        // Function to toggle between tables
+        function showTable(view) {
+            document.getElementById('allMoviesTable').style.display = (view === 'all') ? '' : 'none';
+            document.getElementById('personalMoviesTable').style.display = (view === 'personal') ? '' : 'none';
+            
+            document.getElementById('showAllMovies').classList.toggle('btn-primary', view === 'all');
+            document.getElementById('showAllMovies').classList.toggle('btn-secondary', view !== 'all');
+            document.getElementById('showPersonalMovies').classList.toggle('btn-primary', view === 'personal');
+            document.getElementById('showPersonalMovies').classList.toggle('btn-secondary', view !== 'personal');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            showTable('all');
+        });
+
+        // Function to update the displayed value for each slider independently
+        function updateSliderValue(value, elementId) {
+            document.getElementById(elementId).innerText = value;
+        }
+
+        function sortVisibleTable(columnIndex) {
+            // Determine which table is visible
+            const allMoviesTable = document.getElementById('allMoviesTable');
+            const personalMoviesTable = document.getElementById('personalMoviesTable');
+            const visibleTable = allMoviesTable.style.display === '' ? allMoviesTable : personalMoviesTable;
+
+            // Initialize data attributes for sorting state if not set
+            if (!visibleTable.hasAttribute("data-sorted-index")) {
+                visibleTable.setAttribute("data-sorted-index", -1);
+                visibleTable.setAttribute("data-sorted-order", "asc");
+            }
+
+            // Toggle sorting direction
+            let ascending = true;
+            if (parseInt(visibleTable.getAttribute("data-sorted-index")) === columnIndex) {
+                ascending = visibleTable.getAttribute("data-sorted-order") !== "asc";
+            }
+            visibleTable.setAttribute("data-sorted-index", columnIndex);
+            visibleTable.setAttribute("data-sorted-order", ascending ? "asc" : "desc");
+
+            // Determine if the column is numeric (assuming columns after the first are numeric)
+            const isNumericColumn = columnIndex > 1;
+
+            // Sort the rows
+            const rows = Array.from(visibleTable.rows);
+            rows.sort((a, b) => {
+                let cellA = a.cells[columnIndex].innerText.trim();
+                let cellB = b.cells[columnIndex].innerText.trim();
+
+                if (isNumericColumn) {
+                    cellA = parseFloat(cellA) || 0;
+                    cellB = parseFloat(cellB) || 0;
+                    return ascending ? cellA - cellB : cellB - cellA;
+                } else {
+                    return ascending ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+                }
+            });
+
+            // Reorder rows in the table body
+            rows.forEach(row => visibleTable.appendChild(row));
+        }
+
+        // Attach event listeners to column headers for sorting
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll("th").forEach((header, index) => {
+                header.onclick = () => sortVisibleTable(index);
+            });
+        });
+        function closeModal() {
+            document.getElementById("movieModal").style.display = "none";
+        }
+        // Function to show watched movie details
+        function showDetails(movieId) {
+            console.log("Fetching details for watched movie ID:", movieId); // Debug log
+            fetch(`/movie_details/${movieId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const posterUrl = data.poster_path ? `https://image.tmdb.org/t/p/w200${data.poster_path}` : 'fallback-image-url.jpg';
+                    const content = `
+                        <img src="${posterUrl}" alt="${data.title}" class="img-fluid mb-2">
+                        <h5>${data.title}</h5>
+                        <p><strong>Watch Date:</strong> ${data.watch_date}</p>
+                        <p><strong>Average Rating:</strong> ${data.average_rating}/10</p>
+                        <p><strong>Attendees:</strong></p>
+                        <ul>
+                            ${data.attendees.map(att => `<li>${att.name}: ${att.rating}/10</li>`).join('')}
+                        </ul>
+                    `;
+                    document.getElementById("watchedMovieContent").innerHTML = content;
+                    document.getElementById("watchedMovieModal").style.display = "block";
+                })
+                .catch(error => {
+                    console.error("Fetch error:", error);
+                    alert("Failed to load movie details. Please try again.");
+                });
+        }
+
+// Function to close the watched movie modal
+        function closeWatchedModal() {
+            document.getElementById("watchedMovieModal").style.display = "none";
+        }
+
+// Function to show movie request details
+        function showRequestDetails(requestId) {
+            console.log("Fetching details for movie request ID:", requestId); // Debug log
+            fetch(`/movie_request_details/${requestId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const posterUrl = data.poster_path ? `https://image.tmdb.org/t/p/w200${data.poster_path}` : 'fallback-image-url.jpg';
+                    const content = `
+                        <img src="${posterUrl}" alt="${data.title}" class="img-fluid mb-2">
+                        <h5>${data.title}</h5>
+                        <p><strong>Requested by:</strong> ${data.requested_by}</p>
+                        <p><strong>Request Date:</strong> ${data.request_date}</p>
+                        <p><strong>Runtime:</strong> ${data.runtime} minutes</p>
+                        <p><strong>Overview:</strong> ${data.overview}</p>
+                    `;
+                    document.getElementById("requestMovieContent").innerHTML = content;
+                    document.getElementById("requestMovieModal").style.display = "block";
+                })
+                .catch(error => {
+                    console.error("Error fetching request details:", error);
+                    alert("Failed to load movie request details. Please try again.");
+                });
+        }
+
+        // Function to close the request movie modal
+        function closeRequestModal() {
+            document.getElementById("requestMovieModal").style.display = "none";
+        }
+            </script>
+        {% endblock %}

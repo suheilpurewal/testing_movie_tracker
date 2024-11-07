@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Select Your Profile</h2>
+    <form action="{{ url_for('select_user') }}" method="POST">
+        <div class="form-group">
+            <label for="user_name">Choose your name:</label>
+            <select name="user_name" id="user_name" class="form-control">
+                {% for user in users %}
+                    <option value="{{ user.name }}">{{ user.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Continue</button>
+    </form>
+</div>
+{% endblock %}

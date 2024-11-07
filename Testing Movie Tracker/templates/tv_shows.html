@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="content-wrapper">
+    <h2>TV Shows</h2>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="alert-container">
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% endwith %}
+    <!-- Form to request a new TV show -->
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">Add a New TV Show</h4>
+            <form id="tv-show-request-form" method="POST" action="{{ url_for('request_tv_show') }}">
+                <label for="show-title">TV Show Title:</label>
+                <input type="text" id="show-title" name="title" class="form-control" autocomplete="off" onkeyup="fetchTVShows(this.value)" placeholder="Type to search..." required>
+                
+                <!-- Hidden fields for storing selected show's data -->
+                <input type="hidden" id="poster-path" name="poster_path">
+                <input type="hidden" id="tmdb-id" name="tmdb_id"> <!-- Hidden input for tmdb_id -->
+
+                <button type="submit" class="btn btn-primary mt-2">Add TV Show</button>
+            </form>
+            <ul id="autocomplete-results" class="list-group mt-2" style="display: none;"></ul>
+        </div>
+    </div>
+    <div class="content-wrapper">
+        <h2>Added TV Shows</h2>
+    
+        <!-- Display each TV show in a card format -->
+        <div class="row">
+            {% for show in requested_shows %}
+            <div class="col-md-3">
+                <div class="card card-inverse-primary card-rounded mb-4">
+                    <a href="{{ url_for('tv_show_details', show_id=show.id, user_name=session.get('user_name')) }}">
+                        <img src="https://image.tmdb.org/t/p/w200{{ show.poster_path }}" class="card-img-top" alt="{{ show.title }}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ show.title }}</h5>
+                            <!-- Optional: Add more details like release date or overview here if stored -->
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Fetch TV shows from TMDb API for autocomplete
+function fetchTVShows(query) {
+    if (query.length < 3) {
+        document.getElementById('autocomplete-results').style.display = 'none';
+        return;
+    }
+
+    fetch(`/autocomplete_tv_show?query=${query}`)
+        .then(response => response.json())
+        .then(data => {
+            const results = document.getElementById('autocomplete-results');
+            results.innerHTML = '';
+            data.forEach(show => {
+                const item = document.createElement('li');
+                item.classList.add('list-group-item', 'list-group-item-action');
+                item.textContent = show.title;
+                item.onclick = () => selectShow(show);
+                results.appendChild(item);
+            });
+            results.style.display = 'block';
+        });
+}
+
+// Select a TV show from the autocomplete list
+function selectShow(show) {
+    document.getElementById('show-title').value = show.title;
+    document.getElementById('poster-path').value = show.poster_path;
+    document.getElementById('tmdb-id').value = show.tmdb_id; // Store the tmdb_id in hidden input
+    document.getElementById('autocomplete-results').style.display = 'none';
+}
+</script>
+{% endblock %}
