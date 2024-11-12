@@ -11,48 +11,50 @@
     {% if episodes_by_season %}
         {% for season_number, episodes in episodes_by_season.items() %}
             <h5>Season {{ season_number }}</h5>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Episode</th>
-                        <th>Title</th>
-                        <th>Runtime</th>
-                        <th>Watch Date</th>
-                        <th>Average Rating</th>
-                        <th>Your Rating</th>
-                        {% if is_admin %}
-                            <th>Actions</th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for episode in episodes %}
-                    <tr>
-                        <td>{{ episode.episode_number }}</td>
-                        <td>
-                            <!-- Updated link to trigger modal for episode details -->
-                            <a href="#" onclick="showEpisodeDetails({{ episode.id }})">{{ episode.title }}</a>
-                        </td>
-                        <td>{{ episode.runtime or 'N/A' }} mins</td>
-                        <td>{{ episode.watch_date.strftime('%Y-%m-%d') if episode.watch_date else 'N/A' }}</td>
-                        <td>{{ episode.average_rating or 'N/A' }}</td>
-                        <td>{{ episode.user_rating or 'N/A' }}</td>
-                        {% if is_admin %}
-                        <td>
-                            <form action="{{ url_for('mark_as_watched', episode_id=episode.id) }}" method="post" style="display:inline;">
-                                <input type="hidden" name="episode_id" value="{{ episode.id }}">
-                                <button type="submit" class="btn btn-sm btn-info">
-                                    {{ 'Mark as Unwatched' if episode.watch_date else 'Mark as Watched' }}
-                                </button>
-                            </form>
-                            <button class="btn btn-sm btn-warning" onclick="window.location.href='{{ url_for('admin_edit_episode_attendance', episode_id=episode.id) }}'">Edit Attendance</button>
-                            <button class="btn btn-sm btn-primary" onclick="openRatingModal({{ episode.id }})">Rate Episode</button>
-                        </td>
-                        {% endif %}
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-responsive">
+    <table class="table table-dark table-striped">
+        <thead>
+            <tr>
+                <th onclick="sortTable('tvShowEpisodesTable', 0)">Episode</th>
+                <th onclick="sortTable('tvShowEpisodesTable', 1)">Title</th>
+                <th onclick="sortTable('tvShowEpisodesTable', 2)">Runtime</th>
+                <th onclick="sortTable('tvShowEpisodesTable', 3)">Watch Date</th>
+                <th onclick="sortTable('tvShowEpisodesTable', 4)">Average Rating</th>
+                <th onclick="sortTable('tvShowEpisodesTable', 5)">Your Rating</th>
+                {% if is_admin %}
+                    <th>Actions</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody id="tvShowEpisodesTable">
+            {% for episode in episodes %}
+            <tr>
+                <td>{{ episode.episode_number }}</td>
+                <td>
+                    <!-- Updated link to trigger modal for episode details -->
+                    <a href="#" onclick="showEpisodeDetails({{ episode.id }})">{{ episode.title }}</a>
+                </td>
+                <td>{{ episode.runtime or 'N/A' }} mins</td>
+                <td>{{ episode.watch_date.strftime('%Y-%m-%d') if episode.watch_date else 'N/A' }}</td>
+                <td>{{ episode.average_rating or 'N/A' }}/10</td>
+                <td>{{ episode.user_rating or 'N/A' }}/10</td>
+                {% if is_admin %}
+                <td>
+                    <form action="{{ url_for('mark_as_watched', episode_id=episode.id) }}" method="post" style="display:inline;">
+                        <input type="hidden" name="episode_id" value="{{ episode.id }}">
+                        <button type="submit" class="btn btn-sm btn-info">
+                            {{ 'Mark as Unwatched' if episode.watch_date else 'Mark as Watched' }}
+                        </button>
+                    </form>
+                    <button class="btn btn-sm btn-warning" onclick="window.location.href='{{ url_for('admin_edit_episode_attendance', episode_id=episode.id) }}'">Edit Attendance</button>
+                    <button class="btn btn-sm btn-primary" onclick="openRatingModal({{ episode.id }})">Rate Episode</button>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
         {% endfor %}
     {% else %}
         <p>No episodes fetched. Fetch episodes for this show:</p>
